@@ -83,9 +83,9 @@ You can modify these values to simulate:
 - Storm conditions
 
 and you can add time-bound chnages:
-
+```cpp
 Simulator::Schedule(Seconds(50.0), &WeatherManager::SetWeatherCondition, weather, "RainRate", 100.0);
-
+```
 ---
 
 ## Step 3 — Attach Experiment Metadata (Reproducibility)
