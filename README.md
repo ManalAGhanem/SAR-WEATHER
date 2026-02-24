@@ -203,7 +203,7 @@ channel->SetPropagationLossModel(weatherLoss);
 
 The simulation is now weather-aware.
 
----
+
 ---
 
 # Part B — Enabling Weather-Based Speed Reduction (Mobility Adaptation)
