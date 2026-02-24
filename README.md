@@ -204,7 +204,65 @@ channel->SetPropagationLossModel(weatherLoss);
 The simulation is now weather-aware.
 
 ---
+---
 
+# Part B — Enabling Weather-Based Speed Reduction (Mobility Adaptation)
+
+In addition to signal attenuation, the WeatherManager can dynamically reduce node mobility speed based on environmental severity.
+
+This is achieved using `ScheduleMobilityReduction()`.
+
+---
+
+## Step 11 — Schedule Mobility Reduction
+
+Example for foot-based responder nodes:
+
+```cpp
+for (uint32_t i = 0; i < footNodes.GetN(); i++)
+{
+    Ptr<Node> node = footNodes.Get(i);
+    Ptr<MobilityModel> mob = node->GetObject<MobilityModel>();
+
+    Simulator::Schedule(
+        Seconds(2.0),
+        &WeatherManager::ScheduleMobilityReduction,
+        weather,
+        mob,
+        "foot",
+        2.0
+    );
+}
+```
+
+---
+
+## Explanation of Parameters
+
+- `Seconds(2.0)` → Time when mobility reduction is applied  
+- `weather` → WeatherManager instance  
+- `mob` → Node’s MobilityModel  
+- `"foot"` → Mobility category (e.g., pedestrian responder)  
+- `2.0` → Reduction factor or severity parameter  
+
+---
+
+## How Speed Reduction Works
+
+When scheduled:
+
+1. WeatherManager reads current environmental conditions  
+2. Determines severity (rain, snow, wind, etc.)  
+3. Applies a reduction factor to the node’s mobility model  
+4. Logs the speed change in the speed log file  
+
+This allows simulation of:
+
+- Slower responders in heavy rain  
+- Reduced movement in snow  
+- Mobility constraints in severe storm conditions  
+
+---
 
 
 ## Requirements
