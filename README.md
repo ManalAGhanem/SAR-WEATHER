@@ -6,7 +6,7 @@ A Dynamic Weather-Aware Simulation Framework for Mobile Ad Hoc Networks in Searc
 
 This repository contains the implementation of a **modular, weather-aware Search-and-Rescue (SAR) MANET simulation framework** developed in ns-3.
 
-The framework extends the baseline SAR-MANET architecture (https://github.com/ManalAGhanem/SAR-Framework.git) by incorporating environmental and weather effects into wireless communication modeling, enabling realistic performance evaluation under harsh disaster conditions.
+The framework extends the baseline SAR-MANET architecture by incorporating environmental and weather effects into wireless communication modeling, enabling realistic performance evaluation under harsh disaster conditions.
 
 The framework is released to support reproducibility of the results reported in (please cite):
 
