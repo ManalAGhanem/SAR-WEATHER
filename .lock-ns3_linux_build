@@ -1,0 +1,31 @@
+#! /usr/bin/env python3
+
+launch_dir = '/home/manal/ns-3.43-Weather'
+run_dir = '/home/manal/ns-3.43-Weather'
+top_dir = '/home/manal/ns-3.43-Weather'
+out_dir = '/home/manal/ns-3.43-Weather/build'
+
+
+NS3_ENABLED_MODULES = ['ns3-wimax', 'ns3-wifi', 'ns3-weather-manager', 'ns3-virtual-net-device', 'ns3-uan', 'ns3-traffic-control', 'ns3-topology-read', 'ns3-tap-bridge', 'ns3-stats', 'ns3-spectrum', 'ns3-sixlowpan', 'ns3-propagation', 'ns3-point-to-point-layout', 'ns3-point-to-point', 'ns3-olsr', 'ns3-nix-vector-routing', 'ns3-network', 'ns3-netanim', 'ns3-mobility', 'ns3-mesh', 'ns3-lte', 'ns3-lr-wpan', 'ns3-internet-apps', 'ns3-internet', 'ns3-flow-monitor', 'ns3-fd-net-device', 'ns3-energy', 'ns3-dsr', 'ns3-dsdv', 'ns3-csma-layout', 'ns3-csma', 'ns3-core', 'ns3-config-store', 'ns3-buildings', 'ns3-bridge', 'ns3-applications', 'ns3-aodv', 'ns3-antenna', ]
+NS3_ENABLED_CONTRIBUTED_MODULES = []
+NS3_MODULE_PATH = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/usr/games', '/usr/local/games', '/snap/bin', '/home/manal/ns-3-dev/contrib/netsimulyzer/NetSimulyzer/build', '/home/manal/ns-3.43-Weather/build', '/home/manal/ns-3.43-Weather/build/lib']
+ENABLE_EXAMPLES = False
+ENABLE_TESTS = False
+ENABLE_OPENFLOW = False
+NSCLICK = False
+ENABLE_BRITE = False
+ENABLE_SUDO = False
+ENABLE_PYTHON_BINDINGS = False
+EXAMPLE_DIRECTORIES = []
+APPNAME = 'ns'
+BUILD_PROFILE = 'optimized'
+VERSION = '3.43' 
+BUILD_VERSION_STRING = '' 
+PYTHON = ['/usr/bin/python3']
+VALGRIND_FOUND = False 
+
+
+ns3_runnable_programs = ['/home/manal/ns-3.43-Weather/build/utils/perf/ns3.43-perf-io-optimized', '/home/manal/ns-3.43-Weather/build/utils/ns3.43-print-introspected-doxygen-optimized', '/home/manal/ns-3.43-Weather/build/utils/ns3.43-bench-packets-optimized', '/home/manal/ns-3.43-Weather/build/utils/ns3.43-bench-scheduler-optimized', '/home/manal/ns-3.43-Weather/build/scratch/subdir/ns3.43-scratch-subdir-optimized', '/home/manal/ns-3.43-Weather/build/scratch/nested-subdir/ns3.43-scratch-nested-subdir-executable-optimized', '/home/manal/ns-3.43-Weather/build/scratch/ns3.43-scratch-simulator-optimized', '/home/manal/ns-3.43-Weather/build/scratch/ns3.43-V4-optimized', '/home/manal/ns-3.43-Weather/build/scratch/ns3.43-V3-optimized', '/home/manal/ns-3.43-Weather/build/scratch/ns3.43-V2-optimized', '/home/manal/ns-3.43-Weather/build/scratch/ns3.43-V1-optimized', '/home/manal/ns-3.43-Weather/build/src/tap-bridge/ns3.43-tap-creator-optimized', '/home/manal/ns-3.43-Weather/build/src/fd-net-device/ns3.43-tap-device-creator-optimized', '/home/manal/ns-3.43-Weather/build/src/fd-net-device/ns3.43-raw-sock-creator-optimized', ]
+
+ns3_runnable_scripts = []
+

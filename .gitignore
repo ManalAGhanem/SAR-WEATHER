@@ -1,0 +1,12 @@
+build/
+cmake-cache/
+.lock-ns3
+.ns3rc
+*.pcap
+*.csv
+*.xml
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

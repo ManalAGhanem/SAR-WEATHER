@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../build/lib/libns3dev-weather-module.a "CMakeFiles/ns3dev-weather-module.dir/model/weather-manager.cc.o" "CMakeFiles/ns3dev-weather-module.dir/model/weather-attenuation-model.cc.o"
+/usr/bin/ranlib ../../build/lib/libns3dev-weather-module.a
