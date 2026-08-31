@@ -1,57 +1,91 @@
 # SAR-WEATHER
 
-A Dynamic Weather-Aware Simulation Framework for Mobile Ad Hoc Networks in Search and Rescue Operations  
+## A Modular Weather-Aware Simulation Framework for MANET Search-and-Rescue Simulations
 
-# SAR-MANET Weather-Aware Simulation Framework (ns-3)
+SAR-WEATHER is a modular, weather-aware Search-and-Rescue (SAR) MANET simulation framework developed in ns-3.
 
-This repository contains the implementation of a **modular, weather-aware Search-and-Rescue (SAR) MANET simulation framework** developed in ns-3.
+The framework introduces a shared dynamic environmental state through the `WeatherManager`, allowing weather conditions to influence multiple simulation mechanisms consistently, including wireless propagation, node mobility, line-of-sight (LOS)-based civilian discovery, environmental logging, and mission-level SAR behaviour.
 
-The framework extends the baseline SAR-MANET architecture by incorporating environmental and weather effects into wireless communication modeling, enabling realistic performance evaluation under harsh disaster conditions.
+Environmental conditions can be configured individually, combined into compound weather scenarios, or changed dynamically during simulation execution. The framework is intended to support controlled and reproducible evaluation of MANET behaviour under adverse environmental conditions relevant to disaster-response and SAR operations.
 
-The framework is released to support reproducibility of the results reported in (please cite):
+The framework supports reproducibility of the experiments reported in:
 
+Ghanem, M., Sabaliauskaite, G., Correia-Hopkins, S., Jones, J. L., & Micallef, N. (2026). A dynamic simulation framework for mobile ad hoc networks in search and rescue operations. Simulation Modelling Practice and Theory, 103281.
 
+---
 
-## Scope of this Release
+## Scope of This Release
 
-This code corresponds to the weather module implemenation:
+The repository includes:
 
-- Core SAR scenario setup  
-- Communication stack configuration  
-- Discovery and rescue logic (baseline)  
-- Logging and dataset generation infrastructure  
-- Weather-aware propagation modeling  
-- Environmental attenuation integration into PHY layer  
-- Configurable weather scenarios for experimentation  
+- Core heterogeneous SAR scenario setup
+- MANET communication-stack configuration
+- Civilian discovery and rescue logic
+- `WeatherManager` environmental-state module
+- Dynamic weather-state scheduling
+- Weather-aware propagation modelling
+- Rain attenuation
+- Fog attenuation
+- Atmospheric/gaseous attenuation
+- Weather-aware mobility scaling
+- Weather-aware LOS adjustment
+- Configurable individual and compound weather scenarios
+- Configurable mobility-sensitivity analysis
+- Environmental and mobility logging
+- Seed/run metadata for reproducibility
+- Dataset-generation infrastructure
 
+---
 
-## Weather Model Overview
+# Weather Framework Overview
 
-The Weather Module introduces environmental awareness into the wireless channel model.
+The framework separates the environmental state from the simulation mechanisms that use it.
 
-Unlike conventional MANET simulations that assume ideal conditions, this framework incorporates:
+A simplified architecture is:
 
-- Rain-induced signal attenuation  
-- Fog-based absorption and scattering  
-- Humidity-related propagation degradation  
-- Severe weather composite effects  
-#  Weather Module – Complete Usage Guide
+```text
+                         WeatherManager
+                              |
+              +---------------+---------------+
+              |               |               |
+              v               v               v
+      Propagation Model   Mobility Model   LOS / Discovery
+              |                               |
+              v                               v
+       Wireless Channel                 SAR Mission Logic
+```
 
-The Weather Module integrates environmental conditions into the wireless propagation model using a layered architecture:
+The `WeatherManager` maintains the current environmental conditions and provides a common interface through which other simulation components access the same environmental state.
 
-WeatherManager → WeatherAttenuationModel → BasePropagationModel → Channel
+This allows a weather condition to be defined once and used consistently by the relevant communication, mobility, LOS, and mission-level mechanisms.
 
-The WeatherManager stores environmental parameters.  
-The WeatherAttenuationModel computes additional signal attenuation.  
-The BasePropagationModel computes standard distance-based loss.  
+---
 
-Follow the steps below to enable weather in your simulation.
+# Weather Module – Usage Guide
+
+The weather-aware propagation path follows the layered structure:
+
+```text
+WeatherManager
+      ↓
+WeatherAttenuationModel
+      ↓
+BasePropagationModel
+      ↓
+Wireless Channel
+```
+
+The `WeatherManager` stores and updates environmental parameters.
+
+The `WeatherAttenuationModel` calculates the applicable additional environmental attenuation.
+
+The underlying ns-3 propagation model calculates the baseline propagation loss.
 
 ---
 
 ## Step 1 — Create the Weather Manager
 
-The WeatherManager controls all environmental parameters and logging.
+Create a `WeatherManager` instance:
 
 ```cpp
 Ptr<WeatherManager> weather = CreateObject<WeatherManager>();
@@ -61,46 +95,128 @@ Ptr<WeatherManager> weather = CreateObject<WeatherManager>();
 
 ## Step 2 — Configure Weather Conditions
 
-Set environmental parameters using `SetWeatherCondition()`.
+Environmental conditions are configured using `SetWeatherCondition()`.
 
 ```cpp
-weather->SetWeatherCondition("RainRate", 30.0);     // Rain intensity (mm/hr)
-weather->SetWeatherCondition("FogDensity", 0.0);    // Fog density (normalized)
-weather->SetWeatherCondition("SnowRate", 0.0);      // Snow rate
-weather->SetWeatherCondition("Humidity", 17.0);     // Relative humidity (%)
-weather->SetWeatherCondition("WetSnow", 0.0);       // 1.0 = treat as wet snow
-weather->SetWeatherCondition("WindSpeed", 0.0);     // Wind speed
-weather->SetWeatherCondition("WindDirection", 0.0); // Wind direction (degrees)
+weather->SetWeatherCondition("RainRate", 30.0);      // Rain rate (mm/h)
+weather->SetWeatherCondition("FogDensity", 0.0);     // Fog liquid-water density (g/m^3)
+weather->SetWeatherCondition("SnowRate", 0.0);       // Snow rate (mm/h)
+weather->SetWeatherCondition("Humidity", 17.0);      // Absolute humidity (g/m^3)
+weather->SetWeatherCondition("WetSnow", 0.0);        // 1.0 = treat as wet snow
+weather->SetWeatherCondition("WindSpeed", 0.0);      // Wind speed (m/s)
+weather->SetWeatherCondition("WindDirection", 0.0);  // Wind direction (degrees)
 ```
 
-You can modify these values to simulate:
+These values can be configured to represent conditions such as:
 
 - Clear weather
-- Light rain
-- Heavy rain
+- Rain
 - Fog
 - Snow
-- Storm conditions
+- Wind
+- Severe weather
+- Compound environmental conditions
 
-and you can add time-bound chnages:
-```cpp
-Simulator::Schedule(Seconds(50.0), &WeatherManager::SetWeatherCondition, weather, "RainRate", 100.0);
-```
+Not every environmental variable affects every simulation mechanism.
+
+For example:
+
+- rain, fog, humidity, and atmospheric conditions are used by the applicable propagation calculations;
+- rain, fog, snow, and wind can influence node mobility;
+- rain and fog can modify effective LOS discovery range.
+
 ---
 
-## Step 3 — Attach Experiment Metadata (Reproducibility)
+## Step 3 — Configure Dynamic Weather Changes
 
-This allows traceability of routing configuration, seed, and run number.
+Weather parameters can be changed during simulation execution using standard ns-3 scheduling.
+
+For example:
+
+```cpp
+Simulator::Schedule(
+    Seconds(50.0),
+    &WeatherManager::SetWeatherCondition,
+    weather,
+    "RainRate",
+    100.0
+);
+```
+
+This changes the rainfall rate to `100 mm/h` at simulation time `t = 50 s`.
+
+More complex time-varying profiles can be constructed by scheduling multiple environmental updates.
+
+---
+
+## Step 4 — Attach Experiment Metadata
+
+Experiment metadata can be stored with the weather logs for reproducibility:
 
 ```cpp
 weather->SetMetadata(routingsize, seed, runNumber);
 ```
 
+This provides traceability for:
+
+- routing configuration;
+- simulation seed; and
+- run number.
+
 ---
 
-## Step 4 — Enable Weather Logging (Dataset Generation)
+## Step 5 — Configure Mobility Sensitivity
 
-Configure filenames for logging environmental and mobility changes.
+The strength of weather-driven mobility reduction can be controlled using a global sensitivity parameter:
+
+```cpp
+double mobilitySensitivity = 1.0;
+weather->SetMobilitySensitivity(mobilitySensitivity);
+```
+
+The parameter ranges from `0.0` to `1.0`:
+
+| Value | Behaviour |
+|---:|---|
+| `0.00` | Weather-driven mobility reduction disabled |
+| `0.25` | 25% of the original mobility-reduction strength |
+| `0.50` | 50% of the original mobility-reduction strength |
+| `0.75` | 75% of the original mobility-reduction strength |
+| `1.00` | Full original WeatherManager mobility response |
+
+The original weather-dependent mobility factor is first calculated from the active environmental conditions.
+
+The applied factor is then:
+
+```text
+AppliedFactor = 1 - λ × (1 - OriginalFactor)
+```
+
+where `λ` is the configured `mobilitySensitivity`.
+
+Therefore:
+
+```cpp
+double mobilitySensitivity = 0.0;
+```
+
+disables only the **weather-driven mobility slowdown**. Other weather effects, including propagation and LOS effects, remain active.
+
+In contrast:
+
+```cpp
+double mobilitySensitivity = 1.0;
+```
+
+reproduces the full configured WeatherManager mobility response.
+
+This parameter also enables controlled sensitivity analysis without changing the original node-type-specific weather factors or severity thresholds.
+
+---
+
+## Step 6 — Enable Weather and Mobility Logging
+
+Configure output filenames for environmental-state and mobility logging:
 
 ```cpp
 weather->SetHistoryFilename(
@@ -112,39 +228,45 @@ weather->SetSpeedLogFile(
     "_speed_change_finalv3.csv");
 ```
 
-Generated files:
+Typical generated outputs include:
 
-- Weather change history (CSV)
-- Speed change log (CSV)
+- Weather change history
+- Mobility/speed change log
+- Weather state associated with mobility updates
+- Original mobility factor
+- Applied sensitivity-adjusted mobility factor
+- Node speed information
+- Experiment metadata
 
-These logs are useful for statistical analysis and ML dataset creation.
+These logs support reproducibility, statistical analysis, and dataset generation.
 
 ---
 
-## Step 5 — Create the Baseline Propagation Model
+## Step 7 — Create the Baseline Propagation Model
 
-Select a standard ns-3 propagation model.
+Select an underlying ns-3 propagation model.
 
-Example using Hybrid Buildings:
+Example using the Hybrid Buildings model:
 
 ```cpp
 Ptr<HybridBuildingsPropagationLossModel> baseloss =
     CreateObject<HybridBuildingsPropagationLossModel>();
 ```
 
-Alternative:
+An alternative model can also be used, for example:
 
 ```cpp
-// Ptr<FriisPropagationLossModel> baseloss = CreateObject<FriisPropagationLossModel>();
+// Ptr<FriisPropagationLossModel> baseloss =
+//     CreateObject<FriisPropagationLossModel>();
 ```
 
-This model calculates the baseline path loss without environmental effects.
+The baseline model calculates the standard propagation loss before the additional environmental attenuation is applied.
 
 ---
 
-## Step 6 — Create the Weather Attenuation Model
+## Step 8 — Create the Weather Attenuation Model
 
-Create the weather-aware propagation wrapper.
+Create the weather-aware propagation wrapper:
 
 ```cpp
 Ptr<WeatherAttenuationModel> weatherLoss =
@@ -153,9 +275,9 @@ Ptr<WeatherAttenuationModel> weatherLoss =
 
 ---
 
-## Step 7 — Stack the Baseline Model Inside the Weather Model
+## Step 9 — Connect the Baseline Propagation Model
 
-Attach the baseline propagation model as a child of the weather model.
+Attach the baseline propagation model to the weather-aware model:
 
 ```cpp
 weatherLoss->SetChild(baseloss);
@@ -163,129 +285,268 @@ weatherLoss->SetChild(baseloss);
 
 Conceptually:
 
-TotalLoss = BasePropagationLoss + WeatherAttenuation
+```text
+Total Propagation Loss
+        =
+Baseline Propagation Loss
+        +
+Applicable Weather Attenuation
+```
 
 ---
 
-## Step 8 — Connect Weather Manager to Propagation Model
+## Step 10 — Connect the Weather Manager
 
-Link the environmental parameters to the attenuation model.
+Link the shared environmental state to the attenuation model:
 
 ```cpp
 weatherLoss->SetWeatherManager(weather);
 ```
 
-This enables dynamic reading of rain, fog, humidity, and other parameters.
+The attenuation model can now access the current weather conditions dynamically during simulation execution.
 
 ---
 
-## Step 9 — Configure Physical Layer Parameters
+## Step 11 — Configure Propagation Parameters
 
-Set frequency, polarization, and temperature.
+Configure the parameters required by the atmospheric attenuation calculations:
 
 ```cpp
-weatherLoss->SetFrequency(2.5);          // GHz
+weatherLoss->SetFrequency(2.5);           // GHz
 weatherLoss->SetPolarization("horizontal");
-weatherLoss->SetTemperature(23.0);       // Celsius
+weatherLoss->SetTemperature(23.0);        // Celsius
 ```
-
-These parameters influence atmospheric absorption calculations.
 
 ---
 
-## Step 10 — Assign Weather Model to the Channel
+## Step 12 — Assign the Weather Model to the Channel
 
-Attach the weather-aware propagation model to the channel.
+Attach the weather-aware propagation model to the wireless channel:
 
 ```cpp
 channel->SetPropagationLossModel(weatherLoss);
 ```
 
-The simulation is now weather-aware.
-
-
----
-
-# Part B — Enabling Weather-Based Speed Reduction (Mobility Adaptation)
-
-In addition to signal attenuation, the WeatherManager can dynamically reduce node mobility speed based on environmental severity.
-
-This is achieved using `ScheduleMobilityReduction()`.
+The channel is now connected to the weather-aware propagation model.
 
 ---
 
-## Step 11 — Schedule Mobility Reduction
+# Part B — Weather-Aware Mobility Adaptation
 
-Example for foot-based responder nodes:
+The `WeatherManager` can dynamically modify node mobility according to the severity of the current environmental conditions.
+
+The mobility mechanism considers:
+
+- Rain
+- Fog
+- Snow
+- Wind
+
+Different mobility-retention factors are defined for different node types, including:
+
+- Foot responders
+- Vehicles
+- Drones
+
+When multiple environmental stressors are active at the same time, their mobility effects are combined multiplicatively.
+
+Conceptually:
+
+```text
+OriginalMobilityFactor =
+    RainFactor
+    × FogFactor
+    × SnowFactor
+    × WindFactor
+```
+
+Only factors corresponding to active environmental conditions contribute to the resulting mobility factor.
+
+The configured factors represent controlled simulation stress parameters and can be evaluated using the `mobilitySensitivity` parameter described above.
+
+---
+
+## Step 13 — Schedule Mobility Evaluation
+
+Example for foot responder nodes:
 
 ```cpp
 for (uint32_t i = 0; i < footNodes.GetN(); i++)
 {
     Ptr<Node> node = footNodes.Get(i);
-    Ptr<MobilityModel> mob = node->GetObject<MobilityModel>();
+    Ptr<MobilityModel> mob =
+        node->GetObject<MobilityModel>();
 
     Simulator::Schedule(
-        Seconds(2.0),
+        Seconds(1.0),
         &WeatherManager::ScheduleMobilityReduction,
         weather,
         mob,
         "foot",
-        2.0
+        1.0
     );
 }
 ```
 
----
+### Parameter Meaning
 
-## Explanation of Parameters
+- `Seconds(1.0)` — schedules the first mobility evaluation at `t = 1 s`
+- `weather` — the `WeatherManager` instance
+- `mob` — the node's mobility model
+- `"foot"` — node mobility category
+- final `1.0` — mobility reevaluation interval in seconds
 
-- `Seconds(2.0)` → Time when mobility reduction is applied  
-- `weather` → WeatherManager instance  
-- `mob` → Node’s MobilityModel  
-- `"foot"` → Mobility category (e.g., pedestrian responder)  
-- `2.0` → Reduction factor or severity parameter  
+The final `1.0` is a **time interval**, not a mobility-reduction factor.
 
----
-
-## How Speed Reduction Works
-
-When scheduled:
-
-1. WeatherManager reads current environmental conditions  
-2. Determines severity (rain, snow, wind, etc.)  
-3. Applies a reduction factor to the node’s mobility model  
-4. Logs the speed change in the speed log file  
-
-This allows simulation of:
-
-- Slower responders in heavy rain  
-- Reduced movement in snow  
-- Mobility constraints in severe storm conditions  
+With this configuration, mobility is evaluated approximately every second so that changes in the environmental state can be reflected dynamically.
 
 ---
 
+## How Weather-Aware Mobility Works
 
-## Requirements
+During each mobility evaluation, the `WeatherManager`:
+
+1. Reads the current rain, fog, snow, and wind conditions.
+2. Determines the corresponding weather-severity states.
+3. Selects the node-type-specific mobility factors.
+4. Combines the applicable environmental factors.
+5. Applies the configured `mobilitySensitivity`.
+6. Updates the node's mobility model.
+7. Records the resulting mobility state in the speed log.
+
+This supports scenarios such as:
+
+- Reduced responder movement under severe rainfall
+- Reduced vehicle mobility under adverse environmental conditions
+- Reduced movement under snow
+- Wind-related mobility constraints
+- Compound environmental effects
+- Controlled sensitivity analysis of mobility assumptions
+
+---
+
+# Part C — Weather-Aware LOS Adjustment
+
+The shared environmental state can also be used by the SAR discovery mechanism to modify effective line-of-sight range.
+
+The implemented LOS adaptation considers:
+
+- rainfall; and
+- fog.
+
+Weather-related LOS scaling is applied independently of building-based geometric occlusion.
+
+This allows the framework to distinguish between:
+
+```text
+Physical/Building Occlusion
+```
+
+and:
+
+```text
+Weather-Related Visibility Reduction
+```
+
+during civilian discovery.
+
+The LOS scaling equations are intended as configurable simulation couplings for controlled environmental stress testing rather than empirically calibrated field-visibility predictors.
+
+---
+
+# Example Compound Weather Configuration
+
+A compound severe-weather configuration can be defined as:
+
+```cpp
+weather = CreateObject<WeatherManager>();
+
+weather->SetWeatherCondition("RainRate", 20.0);
+weather->SetWeatherCondition("FogDensity", 0.8);
+weather->SetWeatherCondition("SnowRate", 30.0);
+weather->SetWeatherCondition("Humidity", 17.0);
+weather->SetWeatherCondition("WetSnow", 1.0);
+weather->SetWeatherCondition("WindSpeed", 25.0);
+weather->SetWeatherCondition("WindDirection", 0.0);
+
+weather->SetMetadata(routingsize, seed, runNumber);
+
+double mobilitySensitivity = 1.0;
+weather->SetMobilitySensitivity(mobilitySensitivity);
+```
+
+Individual weather scenarios can be created by setting the unused environmental variables to zero.
+
+---
+
+# Example Mobility-Sensitivity Experiment
+
+The environmental configuration can be kept constant while changing only:
+
+```cpp
+double mobilitySensitivity = 0.0;
+```
+
+or:
+
+```cpp
+double mobilitySensitivity = 0.25;
+```
+
+or:
+
+```cpp
+double mobilitySensitivity = 0.50;
+```
+
+or:
+
+```cpp
+double mobilitySensitivity = 0.75;
+```
+
+or:
+
+```cpp
+double mobilitySensitivity = 1.0;
+```
+
+This allows the effect of the assumed mobility impairment to be evaluated independently of changes in the underlying environmental conditions.
+
+---
+
+# Requirements
+
 - ns-3 version: **ns-3.43**
-- Compiler: g++ (C++17)
-- Tested on: Linux (Ubuntu 22.04)
+- Compiler: **g++ with C++17 support**
+- Tested on: **Linux (Ubuntu 22.04)**
 
-## How to Build
+---
 
+# How to Build
+
+```bash
 ./ns3 configure
 ./ns3 build
+```
 
-## How to run
+---
 
-## Running the Experiments
+# Running the Experiments
 
-The experiments reported in the paper were executed using the provided bash script to ensure consistent protocol selection and random seed control.
+The experiments reported in the paper can be executed using the provided bash script to maintain consistent protocol, random-seed, and run-number configuration.
 
-### Option A: Recommended (scripted execution)
+## Option A — Scripted Execution
 
+```bash
 chmod +x simrun.sh
 ./simrun.sh
+```
 
+## Option B — Manual Single Run
 
-### Option B: Manual execution (single run)
+```bash
 ./ns3 run "scratch/V2.cc" -- --routing=AODV --scenario=V2 --RngRun=1
+```
+
+Scenario names and command-line parameters should be adjusted to match the supplied simulation configuration.
