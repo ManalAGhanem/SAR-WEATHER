@@ -103,18 +103,21 @@ int main(int argc, char *argv[]) {
  //std::cout << "CWD = " << std::filesystem::current_path() << std::endl;
 
     double snapshotSeconds = 2.0;
+   double mobilitySensitivity = 1.0;
+
 
      // Parse command-line arguments
         CommandLine cmd(__FILE__);
         cmd.AddValue("routing",  "Routing protocol (OLSR|AODV|DSDV)", routing);
         cmd.AddValue("scenario", "Scenario identifier for results namespacing", scenarioId);
         cmd.AddValue("snapshot", "Route-table snapshot period in seconds (0=off)", snapshotSeconds);
-        cmd.AddValue("RngRun", "Run number for RNG", runNumber);  // ✅ Make sure to capture this
+        cmd.AddValue("RngRun", "Run number for RNG", runNumber);  //  Make sure to capture this
+        cmd.AddValue("mobilitySensitivity", "Weather mobility sensitivity: " "0.0=no mobility reduction, " "1.0=original heuristic model", mobilitySensitivity);
+
         cmd.Parse(argc, argv);
 
         // Set run and retrieve values **after parsing**
         RngSeedManager::SetRun(runNumber);
-    // seed = RngSeedManager::GetSeed();  // ✅ This now matches the simulation's seed
         routingsize = routing + "_" + scenarioId;
         std::replace(routingsize.begin(), routingsize.end(), '/', '_');
         std::replace(routingsize.begin(), routingsize.end(), '\\', '_');
@@ -475,6 +478,8 @@ weather= CreateObject<WeatherManager>();
    weather->SetWeatherCondition("WindSpeed", 6.0);
    weather->SetWeatherCondition("WindDirection", 0.0);  
    weather->SetMetadata(routingsize, seed, runNumber);
+    weather->SetMobilitySensitivity( mobilitySensitivity);
+
 
 
 
@@ -1298,7 +1303,7 @@ Simulator::Schedule(Seconds(250.0), &WeatherManager::SetWeatherCondition, weathe
 // civilianNodes.Add(civilianNodespassive);
 
 // ----------------------------------------------------
-// ✅ Start DiscoverCivilianNodes ONLY if any civilian is still active
+//  Start DiscoverCivilianNodes ONLY if any civilian is still active
 // (i.e., NOT safe and NOT attached)
 // ----------------------------------------------------
 bool anyRemaining = false;
