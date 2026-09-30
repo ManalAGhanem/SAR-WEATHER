@@ -72,18 +72,20 @@ int main(int argc, char *argv[]) {
  //std::cout << "CWD = " << std::filesystem::current_path() << std::endl;
 
     double snapshotSeconds = 2.0;
+    double mobilitySensitivity = 1.0;
 
      // Parse command-line arguments
         CommandLine cmd(__FILE__);
         cmd.AddValue("routing",  "Routing protocol (OLSR|AODV|DSDV)", routing);
         cmd.AddValue("scenario", "Scenario identifier for results namespacing", scenarioId);
         cmd.AddValue("snapshot", "Route-table snapshot period in seconds (0=off)", snapshotSeconds);
-        cmd.AddValue("RngRun", "Run number for RNG", runNumber);  // ✅ Make sure to capture this
+        cmd.AddValue("RngRun", "Run number for RNG", runNumber);  //  Make sure to capture this
+        cmd.AddValue("mobilitySensitivity", "Weather mobility sensitivity: " "0.0=no mobility reduction, " "1.0=original heuristic model", mobilitySensitivity);
+
         cmd.Parse(argc, argv);
 
         // Set run and retrieve values **after parsing**
         RngSeedManager::SetRun(runNumber);
-    // seed = RngSeedManager::GetSeed();  // ✅ This now matches the simulation's seed
         routingsize = routing + "_" + scenarioId;
         std::replace(routingsize.begin(), routingsize.end(), '/', '_');
         std::replace(routingsize.begin(), routingsize.end(), '\\', '_');
@@ -445,6 +447,8 @@ weather= CreateObject<WeatherManager>();
    weather->SetWeatherCondition("WindSpeed", 0.0);
    weather->SetWeatherCondition("WindDirection", 0.0);   
    weather->SetMetadata(routingsize, seed, runNumber);
+    weather->SetMobilitySensitivity( mobilitySensitivity);
+
 
 
 
@@ -453,33 +457,6 @@ weather= CreateObject<WeatherManager>();
    weather->SetSpeedLogFile(routingsize+"_"+std::to_string(runNumber)+"_speed_change_finalv3.csv");
 
  Ptr<HybridBuildingsPropagationLossModel> baseloss = CreateObject<HybridBuildingsPropagationLossModel>();
-//   Ptr<FriisPropagationLossModel> baseloss = CreateObject<FriisPropagationLossModel>();
-
-   weatherLoss = CreateObject<WeatherAttenuationModel>();
-   weatherLoss->SetChild(baseloss);
-   weatherLoss->SetWeatherManager(weather);
-    weatherLoss->SetFrequency(2.5);
-   weatherLoss->SetPolarization("horizontal");
-   weatherLoss->SetTemperature(8.0);
-
-// // 810–1000 s (decay): Rain 20, Wind 6,Hum 17, Temp 23
-//      weather->SetWeatherCondition("RainRate", 0.0);
-//    weather->SetWeatherCondition("FogDensity", 0.0);
-//    weather->SetWeatherCondition("SnowRate", 0.0);
-//    weather->SetWeatherCondition("Humidity", 0.0);
-//    weather->SetWeatherCondition("WetSnow", 0.0); // 1.0 means treat as wet snow.
-//    weather->SetWeatherCondition("WindSpeed", 0.0);
-//    weather->SetWeatherCondition("WindDirection", 0.0);  
-//    weather->SetMetadata(routingsize, seed, runNumber);
-
-
-
-//   //weather->SetAveragesFilename("Weather_Averagesfinalv3small.csv");
-//  weather->SetHistoryFilename(routingsize+"_"+"Weather_change_history_finalv3.csv");
-//    weather->SetSpeedLogFile(routingsize+"_"+std::to_string(runNumber)+"_speed_change_finalv3.csv");
-
-//  //Ptr<HybridBuildingsPropagationLossModel> baseloss = CreateObject<HybridBuildingsPropagationLossModel>();
-//     Ptr<FriisPropagationLossModel> baseloss = CreateObject<FriisPropagationLossModel>();
 
     weatherLoss = CreateObject<WeatherAttenuationModel>();
    weatherLoss->SetChild(baseloss);
@@ -503,7 +480,6 @@ weather= CreateObject<WeatherManager>();
      
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211n);
-    //wifi.SetRemoteStationManager("ns3::AarfWifiManager");
     WifiMacHelper wifiMac;
     wifiMac.SetType("ns3::AdhocWifiMac", "QosSupported", BooleanValue(true));
 
@@ -538,7 +514,6 @@ for (uint32_t i = 0; i < allNodes.GetN(); ++i) {
     allWifiDevices.Add(civilianDevicesquery);
     allWifiDevices.Add(civilianDevicespassive);
 
-//Ipv4InterfaceContainer allInterfaces = ipv4.Assign(allWifiDevices);
 
 
        NS_LOG_INFO("WIFI ready...");
@@ -564,11 +539,6 @@ for (uint32_t i = 0; i < allNodes.GetN(); ++i) {
             packetSentCount[i] = 0; // Initialize sent count to 0
             packetReceivedCount[i] = 0; // Initialize received count to 0
         }
-    // Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx",MakeCallback(&TrackPacketSent));
-
-    // Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacRx", MakeCallback(&TrackPacketReceived));
-
-
 
     // set up mobility models
     MobilityHelper mobility;
@@ -627,19 +597,9 @@ for (uint32_t i = 0; i < allNodes.GetN(); ++i) {
                           "PositionAllocator", PointerValue(groundPositionAlloc));
 
 
-    // mobility.SetMobilityModel("ns3::RandomWaypointMobilityModel",
-    //     "PositionAllocator", PointerValue(groundPositionAlloc),
-    //     "Speed", StringValue("ns3::UniformRandomVariable[Min=5.0|Max=10.0]"),  // Speed range
-    //     "Pause", StringValue("ns3::UniformRandomVariable[Min=1.0|Max=8.0]")); // Pause duration
-
-
     mobility.Install(vehicleNode);
      PlaceNodesOutsideBuildings(vehicleNode, allBuildings, 2);
 
-    // mobility.SetMobilityModel("ns3::RandomWaypointMobilityModel",
-    //     "PositionAllocator", PointerValue(groundPositionAlloc),
-    //     "Speed", StringValue("ns3::UniformRandomVariable[Min=2.0|Max=5.0]"),  // Speed range
-    //     "Pause", StringValue("ns3::UniformRandomVariable[Min=1.0|Max=5.0]")); // Pause duration
  mobility.SetMobilityModel("ns3::WeatherWaypointMobilityModel",
                           "Speed", StringValue("ns3::UniformRandomVariable[Min=2.0|Max=5.0]"),
                           "Pause", StringValue("ns3::ConstantRandomVariable[Constant=2.0]"),
@@ -697,18 +657,9 @@ for (uint32_t i = 0; i < civilianNodesPLB.GetN(); i++) {
   Vector buildingEdge(boundaries.xMin + 1.0, // Slight offset from the wall
     boundaries.yMin + 1.0,
     std::max(boundaries.zMin + 2.0, 2.0)); // Ensure it's above ground
-
-//   Vector buildingCenter((boundaries.xMin + boundaries.xMax) / 2,
-//                         (boundaries.yMin + boundaries.yMax) / 2,
-//                         (boundaries.zMin + boundaries.zMax) / 2);
-
-  // Assign the civilian position inside the building
   Ptr<MobilityModel> mobilityModel = civilianNodesPLB.Get(i)->GetObject<MobilityModel>();
- // Vector pos = mobilityModel->GetPosition();
-//  mobilityModel->SetPosition(buildingCenter);
    mobilityModel->SetPosition(buildingEdge);
 
-//   //mobilityModel->SetPosition(Vector(pos.x, pos.y, 100.0));
 
 }
 
@@ -1262,7 +1213,7 @@ civilianNodes.Add(civilianNodesquery);
 civilianNodes.Add(civilianNodespassive);
 
 // ----------------------------------------------------
-// ✅ Start DiscoverCivilianNodes ONLY if any civilian is still active
+//  Start DiscoverCivilianNodes ONLY if any civilian is still active
 // (i.e., NOT safe and NOT attached)
 // ----------------------------------------------------
 bool anyRemaining = false;
