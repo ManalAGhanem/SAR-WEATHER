@@ -104,7 +104,8 @@ public:
   // Logging helpers
   void SetSpeedLogFile(const std::string &filename);
   void SetMetadata(const std::string &routing, uint32_t scenario, uint32_t run);
-
+ void SetMobilitySensitivity(double sensitivity);
+  double GetMobilitySensitivity() const;
   // Weather history and averages
   std::map<std::string, double> GetAverageWeatherConditions() const;
 std::map<std::string, double> GetAverageWeatherConditions(double startTime,
@@ -118,13 +119,13 @@ private:
   std::string m_historyFilename;   // e.g., "weather_history.csv"
 
   WeatherThresholds m_thresholds;
-
+ 
   std::map<uint32_t, double> m_originalSpeed;
   std::string m_speedLogFileName;
   std::string m_routingProtocol;
   uint32_t m_scenarioId = 0;
   uint32_t m_runNumber = 0;
-
+double m_mobilitySensitivity = 1.0;
   // Attenuation helpers
   double CalculateRainAttenuation(double rainRate, double pathLength, double frequency, std::string polarization) const;
   double CalculateFogAttenuation(double fogDensity, double pathLength, double frequency, double temperature) const;
