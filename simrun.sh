@@ -2,6 +2,7 @@ set -euo pipefail
 
 PROGRAM="scratch/V1.cc"
 SCENARIO="V3"
+mobilitySensitivity=0.75
 
 ROUTING_LIST=(  "OLSR" "AODV" "DSDV" )         # add "DSDV" "OLSR" etc if needed
 RUN_START=1
@@ -15,7 +16,7 @@ command -v ./ns3 >/dev/null || { echo "Could not find ./ns3 in this directory"; 
 for proto in "${ROUTING_LIST[@]}"; do
   for ((i=RUN_START; i<=RUN_END; i++)); do
     echo "Running $proto with RngRun=$i"
-    ./ns3 run "$PROGRAM" --  --routing="$proto" --scenario="$SCENARIO" --RngRun="$i" 
+    ./ns3 run "$PROGRAM" --  --routing="$proto" --scenario="$SCENARIO" --RngRun="$i" --mobilitySensitivity="$mobilitySensitivity" 
   done
 done
 
