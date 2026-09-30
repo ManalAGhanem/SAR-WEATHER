@@ -546,7 +546,7 @@ chmod +x simrun.sh
 ## Option B — Manual Single Run
 
 ```bash
-./ns3 run "scratch/V2.cc" -- --routing=AODV --scenario=V2 --RngRun=1
+./ns3 run "scratch/V2.cc" -- --routing=AODV --scenario=V2 --RngRun=1 --mobilitySensitivity=0.75
 ```
 
 Scenario names and command-line parameters should be adjusted to match the supplied simulation configuration.
