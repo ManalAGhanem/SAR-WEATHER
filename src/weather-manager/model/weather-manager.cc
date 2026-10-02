@@ -206,18 +206,30 @@ double WeatherManager::GetEffectiveLOSRange(double nominalRange) const {
     // Default LOS range (no attenuation)
     double effectiveRange = nominalRange;
 
+    
     // Check for rain impact on LOS
     if (rainRate > 0.0) {
-        double rainAttenuationFactor = 1.0 - (0.02 * rainRate);  // Example formula, adjust as needed
-        effectiveRange *= std::max(0.5, rainAttenuationFactor);  // Limit minimum LOS to 50%
+        const double rainRetentionCap = 0.5;  // original setting
+
+        double rainAttenuationFactor =
+            1.0 - (0.02 * rainRate);
+
+        effectiveRange *=
+            std::max(rainRetentionCap, rainAttenuationFactor);
     }
 
     // Check for fog impact on LOS
+    // Check for fog impact on LOS
     if (fogDensity > 0.0) {
-        double fogAttenuationFactor = 1.0 - (0.7 * fogSeverity);  // Example formula, adjust as needed
-        effectiveRange *= std::max(0.3, fogAttenuationFactor);  // Limit minimum LOS to 30%
-    }
 
+        const double fogRetentionCap = 0.3;  // 30% original setting
+
+        double fogAttenuationFactor =
+            1.0 - ((1.0 - fogRetentionCap) * fogSeverity);
+
+        effectiveRange *=
+            std::max(fogRetentionCap, fogAttenuationFactor);
+    }
     //  Log to CSV whenever LOS is affected by weather
     std::ofstream losLogFile;
     losLogFile.open("LOS_changes.csv", std::ios_base::app); // Append mode
