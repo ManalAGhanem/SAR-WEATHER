@@ -342,6 +342,25 @@ void ConvergeOnCivilian(Ptr<Node> sarNode, Ptr<Node> civilianNode, Ptr<Socket> b
 }
 
 
+// A completed civilian must never be assigned again.
+static bool IsCivilianAlreadySafeForAssignment(uint32_t civilianId)
+{
+    const auto it = civilianSafetyStatus.find(civilianId);
+    return it != civilianSafetyStatus.end() && it->second;
+}
+
+// Remove a queued civilian at assignment commit, before convergence can
+// synchronously complete the rescue and remove its active assignment.
+static void CompletePendingAssignment(uint32_t civilianId)
+{
+    if (pendingCivilians.erase(civilianId) != 0)
+    {
+        pendingAssignmentCsv << Simulator::Now().GetSeconds() << ","
+                             << civilianId << ",ASSIGNED\n";
+        pendingAssignmentCsv.flush();
+    }
+}
+
 void AssignRescuer(uint32_t civilianId, Ptr<Node> civilianNode, const NodeContainer& sarNodes, 
     Ptr<Socket> baseBroadcastSocket, uint16_t assignmentPort) {
 
@@ -351,9 +370,14 @@ void AssignRescuer(uint32_t civilianId, Ptr<Node> civilianNode, const NodeContai
           << " fail=" << rescueAssignmentLogFile.fail()
           << "\n";
 
-// 1) If civilian is already assigned, exit.
+// 1) Do not assign a rescued or already assigned civilian.
+if (IsCivilianAlreadySafeForAssignment(civilianId)) {
+    pendingCivilians.erase(civilianId);
+    return;
+}
 if (rescueAssignments.find(civilianId) != rescueAssignments.end()) {
-return;
+    pendingCivilians.erase(civilianId);
+    return;
 }
   
 // 2) Validate the civilian node
@@ -417,6 +441,7 @@ if (!assignedNode) {
 // 6) Record the assignment
 rescueAssignments[civilianId] = assignedNodeId;
 assignedSarNodes.insert(assignedNodeId);
+CompletePendingAssignment(civilianId);
 
 // 7) Log the assignment
 double timestamp = Simulator::Now().GetSeconds();
@@ -511,50 +536,60 @@ ConvergeOnCivilian(assignedNode, civilianNode, senderSocket, convergencePort);
 }
 void TryAssignPendingCivilians()
 {
-    for (auto it = pendingCivilians.begin(); it != pendingCivilians.end(); )
+    // Defensive guard: never run a nested pending-assignment pass.
+    static bool isProcessing = false;
+    if (isProcessing)
     {
-        uint32_t civId = *it;
+        return;
+    }
+    isProcessing = true;
+    struct ProcessingGuard
+    {
+        bool& flag;
+        ~ProcessingGuard() { flag = false; }
+    } guard{isProcessing};
+
+    // Preserve the existing container traversal order without keeping
+    // iterators into a container that assignment/completion may change.
+    const auto snapshot = pendingCivilians;
+    for (uint32_t civId : snapshot)
+    {
+        if (pendingCivilians.find(civId) == pendingCivilians.end())
+        {
+            continue;
+        }
+        if (IsCivilianAlreadySafeForAssignment(civId) ||
+            rescueAssignments.find(civId) != rescueAssignments.end() ||
+            civId >= NodeList::GetNNodes())
+        {
+            pendingCivilians.erase(civId);
+            continue;
+        }
 
         Ptr<Node> civilianNode = NodeList::GetNode(civId);
         if (!civilianNode)
         {
-            it = pendingCivilians.erase(it);
+            pendingCivilians.erase(civId);
             continue;
         }
 
-        // Log that this civilian is currently pending
         pendingAssignmentCsv << Simulator::Now().GetSeconds() << ","
                              << civId << ",PENDING\n";
         pendingAssignmentCsv.flush();
 
-        size_t before = rescueAssignments.size();
-
-        AssignRescuer(
-            civId,
-            civilianNode,
-            sarNodes,
-            baseBroadcastSocket,
-            assignmentPort
-        );
-
-        // If assignment succeeded
-        if (rescueAssignments.size() > before)
-        {
-            pendingAssignmentCsv << Simulator::Now().GetSeconds() << ","
-                                 << civId << ",ASSIGNED\n";
-            pendingAssignmentCsv.flush();
-
-            it = pendingCivilians.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
+        // AssignRescuer removes this civilian from pending at assignment
+        // commit. If no rescuer is available, the civilian remains pending.
+        AssignRescuer(civId, civilianNode, sarNodes,
+                      baseBroadcastSocket, assignmentPort);
     }
 }
 void AssignRescuerBySelf(uint32_t civilianId, uint32_t sarNodeId, Ptr<Node> baseNode) {
-    // 1) If the civilian is already assigned, exit
-    if (rescueAssignments.find(civilianId) != rescueAssignments.end()) return;
+    // 1) Do not self-assign a rescued or already assigned civilian.
+    if (IsCivilianAlreadySafeForAssignment(civilianId) ||
+        rescueAssignments.find(civilianId) != rescueAssignments.end()) {
+        pendingCivilians.erase(civilianId);
+        return;
+    }
 
     // 2) If the SAR is already assigned, exit
     if (assignedSarNodes.find(sarNodeId) != assignedSarNodes.end()) return;
@@ -585,6 +620,7 @@ void AssignRescuerBySelf(uint32_t civilianId, uint32_t sarNodeId, Ptr<Node> base
     // 5) Record the assignment
     rescueAssignments[civilianId] = sarNodeId;
     assignedSarNodes.insert(sarNodeId);
+    CompletePendingAssignment(civilianId);
 
     // 6) Log the assignment
     double timestamp = Simulator::Now().GetSeconds();
@@ -620,7 +656,8 @@ void CheckAssignmentStatusAndPossiblySelfAssign(
     uint32_t civilianNodeId,
     Ptr<Node> baseNode
 ) {
-    if (rescueAssignments.find(civilianNodeId) != rescueAssignments.end())
+    if (IsCivilianAlreadySafeForAssignment(civilianNodeId) ||
+        rescueAssignments.find(civilianNodeId) != rescueAssignments.end())
         return;
 
     Ptr<Node> sarNode = NodeList::GetNode(sarNodeId);

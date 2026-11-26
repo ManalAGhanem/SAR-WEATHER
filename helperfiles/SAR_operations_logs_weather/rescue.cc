@@ -59,6 +59,7 @@ void MarkCivilianAsSafe(Ptr<Node> sarNode, Ptr<Node> civilianNode, Ptr<Node> bas
         return;
     }
     civilianSafetyStatus[civilianId] = true;
+    pendingCivilians.erase(civilianId);
 
     std::cout << " Civilian " << civilianId << " is SAFE" << std::endl;
 
@@ -224,7 +225,9 @@ void MarkCivilianAsSafe(Ptr<Node> sarNode, Ptr<Node> civilianNode, Ptr<Node> bas
     }
     std::cout << std::endl;
 
-    TryAssignPendingCivilians();
+    // Finish this rescue before processing the next pending assignment.
+    // ScheduleNow preserves the simulation timestamp without nesting calls.
+    Simulator::ScheduleNow(&TryAssignPendingCivilians);
 }
         struct MovementUpdate {
         uint32_t sarNodeId;
