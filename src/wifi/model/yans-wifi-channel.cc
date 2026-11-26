@@ -136,7 +136,10 @@ YansWifiChannel::Receive(Ptr<YansWifiPhy> phy, Ptr<const WifiPpdu> ppdu, dBm_u r
     }
     RxPowerWattPerChannelBand rxPowerW;
     rxPowerW.insert({{{{0, 0}}, {{0, 0}}}, (DbmToW(totalRxPower))}); // dummy band for YANS
-    phy->StartReceivePreamble(ppdu, rxPowerW, ppdu->GetTxDuration());
+    // Defer reception to allow pending same-time events to complete.
+    Simulator::ScheduleNow([phy, ppdu, rxPowerW]() mutable {
+        phy->StartReceivePreamble(ppdu, rxPowerW, ppdu->GetTxDuration());
+    });
 }
 
 std::size_t
